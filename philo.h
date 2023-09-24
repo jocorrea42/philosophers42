@@ -24,7 +24,6 @@ typedef struct	s_philo
 	int				id;
 	int				eating;
 	int				meal_eaten;
-	int				num_time_eat;
 	int				*dead;
 	int				*num_philo;
 	pthread_t		thread;
@@ -44,6 +43,7 @@ typedef struct	s_program
 {
 	int				is_dead;
 	int				num_philos;
+	int				num_time_eat;
 	t_philo			*philos;
 	pthread_mutex_t	write_lock;
 	pthread_mutex_t	dead_lock;
@@ -52,9 +52,11 @@ typedef struct	s_program
 
 
 int	ft_atoi(const char *str);
+int	ft_isdigit(int c);
 int	check_input(char **argv);
 int	init_program(t_program *program, char **argv);
 int	create_threads(t_program *prog);
+int	ft_sleep(size_t milliseconds);
 void	print_message(char *str, t_philo *philo);
 
 void	think(t_philo philo);

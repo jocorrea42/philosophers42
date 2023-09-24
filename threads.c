@@ -25,6 +25,8 @@ void	*philo_task(void *pointer)
 	t_philo *philo;
 
 	philo = (t_philo *)pointer;
+	if (philo->id % 2 == 0)
+		ft_sleep(1);
 	while (!is_alive(philo))
 	{
 		eat(philo);
@@ -35,32 +37,30 @@ void	*philo_task(void *pointer)
 }
 
 
-int	philosopher_dead(t_philo *philo, size_t time_to_die)
+int	philosopher_dead(t_philo *philo)
 {
 	pthread_mutex_lock(philo->meal_lock);
-	if (get_current_time() - philo->last_meal >= time_to_die
+	if (get_current_time() - philo->last_meal >= philo->time_to_die
 		&& philo->eating == 0)
 		return (pthread_mutex_unlock(philo->meal_lock), 1);
-	pthread_mutex_unlock(philo->meal_lock);
-	return (0);
+	return (pthread_mutex_unlock(philo->meal_lock), 0);
 }
 
 int	check_if_dead(t_program *prog)
 {
 	int	i;
 
-	i = 0;
-	while (i < prog->num_philos)
+	i = -1;
+	while (++i < prog->num_philos)
 	{
-		if (philosopher_dead(&prog->philos[i], prog->philos[i].time_to_die))
+		if (philosopher_dead(&prog->philos[i]))
 		{
 			print_message("died", &prog->philos[i]);
-			pthread_mutex_lock(prog->philos[0].dead_lock);
-			*prog->philos->dead = 1;
-			pthread_mutex_unlock(prog->philos[0].dead_lock);
+			pthread_mutex_lock(&prog->dead_lock);
+			prog->is_dead = 1;
+			pthread_mutex_unlock(&prog->dead_lock);
 			return (1);
 		}
-		i++;
 	}
 	return (0);
 }
@@ -70,37 +70,36 @@ int	check_if_all_ate(t_program *prog)
 	int	i;
 	int	finished_eating;
 
-	i = 0;
+	i = -1;
 	finished_eating = 0;
-	if (prog->philos[0].num_time_eat == -1)
+	if (prog->num_time_eat == -1)
 		return (0);
-	while (i < prog->num_philos)
+	while (++i < prog->num_philos)
 	{
-		pthread_mutex_lock(prog->philos[i].meal_lock);
-		if (prog->philos[i].meal_eaten >= prog->philos[i].num_time_eat)
+		pthread_mutex_lock(&prog->meal_lock);
+		if (prog->philos[i].meal_eaten >= prog->num_time_eat)
 			finished_eating++;
-		pthread_mutex_unlock(prog->philos[i].meal_lock);
-		i++;
+		pthread_mutex_unlock(&prog->meal_lock);
 	}
 	if (finished_eating == prog->num_philos)
 	{
-		pthread_mutex_lock(prog->philos[0].dead_lock);
-		*prog->philos->dead = 1;
-		pthread_mutex_unlock(prog->philos[0].dead_lock);
+		pthread_mutex_lock(&prog->dead_lock);
+		prog->is_dead = 1;
+		pthread_mutex_unlock(&prog->dead_lock);
 		return (1);
 	}
 	return (0);
 }
 
-void	*monitor(void *pointer)
+void	*monitor(void *ptr)
 {
 	t_program	*prog;
 
-	prog = (t_program *)pointer;
+	prog = (t_program *)ptr;
 	while (1)
 		if (check_if_dead(prog) == 1 || check_if_all_ate(prog) == 1)
-			break ;
-	return (pointer);
+			break ;	
+	return (ptr);
 }
 
 int	create_threads(t_program *prog)
@@ -112,17 +111,14 @@ int	create_threads(t_program *prog)
 		destroy_all("Thread creation error", prog);
 	i = -1;
 	while (++i < prog->num_philos)
-	{
-		if (pthread_create(&prog->philos[i].thread, NULL, &philo_task, &prog->philos[i]) != 0)
+		if (pthread_create(&prog->philos[i].thread, NULL, &philo_task,
+				&prog->philos[i]) != 0)
 			destroy_all("Thread creation error", prog);
-	}
 	if (pthread_join(observer, NULL) != 0)
 		destroy_all("Thread join error", prog);
 	i = -1;
 	while (++i < prog->num_philos)
-	{
 		if (pthread_join(prog->philos[i].thread, NULL) != 0)
 			destroy_all("Thread join error", prog);
-	}
 	return (0);
 }

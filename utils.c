@@ -12,6 +12,21 @@
 
 #include "philo.h"
 
+int	ft_isdigit(int c)
+{
+	return ((c >= '0' && c <= '9'));
+}
+
+int	ft_sleep(size_t milliseconds)
+{
+	size_t	start;
+
+	start = get_current_time();
+	while ((get_current_time() - start) < milliseconds)
+		usleep(500);
+	return (0);
+}
+
 int	ft_strlen(char *str)
 {
 	int	i;
@@ -39,6 +54,7 @@ void	destroy_all(char *str, t_program *program)
 	pthread_mutex_destroy(&program->dead_lock);
 	while (++i < program->num_philos)
 		pthread_mutex_destroy(&program->philos[i].l_fork);
+	free(program->philos);
 }
 
 int	ft_usleep(size_t milliseconds)
